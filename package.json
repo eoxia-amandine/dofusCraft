@@ -22,5 +22,8 @@
     "concurrently": "^9.1.2",
     "electron": "^34.1.1",
     "wait-on": "^8.0.2"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1"
   }
 }
