@@ -1,0 +1,26 @@
+{
+  "name": "dofuscraft",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "concurrently \"npm run react-start\" \"npm run electron-start\"",
+    "react-start": "cd app && npm run dev",
+    "electron-start": "wait-on http://localhost:5173 && electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "dofusCraft"
+  },
+  "author": "Amandine",
+  "license": "ISC",
+  "description": "Dofus Craft helper",
+  "devDependencies": {
+    "@babel/core": "^7.26.8",
+    "@babel/preset-react": "^7.26.3",
+    "babel-loader": "^9.2.1",
+    "concurrently": "^9.1.2",
+    "electron": "^34.1.1",
+    "wait-on": "^8.0.2"
+  }
+}
