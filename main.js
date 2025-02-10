@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("path");
 const db = require("./db/database");
+const axios = require("axios");
 
 const createWindow = () => {
   const win = new BrowserWindow({
@@ -44,4 +45,14 @@ ipcMain.handle("add-player", async (event, playerName) => {
 ipcMain.handle("get-players", async () => {
   const stmt = db.prepare("SELECT * FROM players");
   return stmt.all();
+});
+
+ipcMain.handle("fetch-dofus-data", async (event, endpoint) => {
+  try {
+    const response = await axios.get(`https://api.dofusdu.de/dofus3/v1/${endpoint}`);
+    return response.data;
+  } catch (error) {
+    console.error("Erreur lors de l'appel API :", error);
+    return { error: "Impossible de récupérer les données." };
+  }
 });
