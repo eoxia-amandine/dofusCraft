@@ -5,8 +5,35 @@
   "scripts": {
     "start": "concurrently \"npm run react-start\" \"npm run electron-start\"",
     "react-start": "cd app && npm run dev",
+    "react-build": "cd app && npm run build",
     "electron-start": "wait-on http://localhost:5173 && electron .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npm run react-build && electron-builder"
+  },
+  "build": {
+    "appId": "com.dofuscraft.app",
+    "productName": "DofusCraft",
+    "directories": {
+      "app": "app",
+      "output": "dist"
+    },
+    "files": [
+      "app/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "assets/icon.icns"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "assets/icon.png"
+    }
   },
   "repository": {
     "type": "git",
@@ -21,6 +48,9 @@
     "babel-loader": "^9.2.1",
     "concurrently": "^9.1.2",
     "electron": "^34.1.1",
+    "electron-builder": "^25.1.8",
+    "electron-packager": "^17.1.2",
+    "react-scripts": "^5.0.1",
     "wait-on": "^8.0.2"
   },
   "dependencies": {

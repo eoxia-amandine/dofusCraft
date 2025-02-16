@@ -9,14 +9,28 @@ const db = new Database(dbPath, { verbose: console.log });
 
 // Créer une table si elle n'existe pas
 db.prepare(`
-  CREATE TABLE IF NOT EXISTS players (
+  CREATE TABLE IF NOT EXISTS list (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT,
-    level INTEGER
+    label TEXT NOT NULL
   )
 `).run();
 
-console.log("Base de données initialisée !");
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS listItem (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    listId INTEGER NOT NULL,
+    ankamaId INTEGER NOT NULL,
+    type TEXT NOT NULL,
+    FOREIGN KEY (listId) REFERENCES list(id)
+  )
+`).run();
+
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS price (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    value INTEGER NOT NULL
+  )
+`).run();
 
 // Exporter l'objet db pour y accéder depuis Electron
 module.exports = db;

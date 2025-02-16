@@ -19,7 +19,13 @@ const createWindow = () => {
   //  ? "http://localhost:5173"
   //  : `file://${path.join(__dirname, "../build/index.html")}`;
 
-  win.loadURL('http://localhost:5173');
+  const startURL = app.isPackaged
+    ? `file://${path.join(__dirname, "dist/index.html")}` // En production
+    : "http://localhost:5173"; // En développement
+
+  win.loadURL(startURL);
+  win.webContents.openDevTools();
+
 }
 
 app.whenReady().then(() => {
@@ -34,19 +40,53 @@ app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit()
   })
 
-  // Ajouter un joueur depuis React
-ipcMain.handle("add-player", async (event, playerName) => {
-  const stmt = db.prepare("INSERT INTO players (name, level) VALUES (?, ?)");
-  stmt.run(playerName, 1);
-  return { success: true };
-});
 
-// Récupérer tous les joueurs
-ipcMain.handle("get-players", async () => {
-  const stmt = db.prepare("SELECT * FROM players");
+// Get all lists
+ipcMain.handle("get-lists", async () => {
+  const stmt = db.prepare("SELECT * FROM list");
   return stmt.all();
 });
 
+// Get list
+ipcMain.handle("get-list", async (event, id) => {
+  const stmt = db.prepare("SELECT * FROM listItem WHERE id = ?");
+  return stmt.get(id);
+});
+
+// Add list
+ipcMain.handle("add-list", async (event, label) => {
+  const stmt = db.prepare("INSERT INTO list (label) VALUES (?)");
+  stmt.run(label);
+  return stmt.lastInsertRowid;
+});
+
+// Get items by listId
+ipcMain.handle("get-list-items", async (event, listId) => {
+  const stmt = db.prepare("SELECT * FROM listItem WHERE listId = ?");
+  return stmt.all(listId);
+});
+
+// Add list item
+ipcMain.handle("add-list-item", async (event, listId, ankamaId, type) => {
+  const stmt = db.prepare("INSERT INTO listItem (listId, ankamaId, type) VALUES (?, ?, ?)");
+  stmt.run(listId, ankamaId, type);
+  return stmt.lastInsertRowid;
+});
+
+// get item price
+ipcMain.handle("get-item-price", async (event, id) => {
+  const stmt = db.prepare("SELECT value FROM price WHERE id = ?");
+  return stmt.get(id);
+});
+
+// Add item price
+ipcMain.handle("add-item-price", async (event, id, value) => {
+  const stmt = db.prepare("INSERT INTO price (id, value) VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET value = excluded.value");
+  stmt.run(id, value);
+  return stmt.lastInsertRowid;
+});
+
+// Get API Dofus datas
 ipcMain.handle("fetch-dofus-data", async (event, endpoint) => {
   try {
     const response = await axios.get(`https://api.dofusdu.de/dofus3/v1/${endpoint}`);
