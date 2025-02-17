@@ -1,0 +1,90 @@
+.list-navigation {
+    background: $section-background;
+    z-index: 100;
+    
+    ul {
+        padding: 0 0.5em;
+        margin: 0;
+    }
+    li {
+        padding: 0;
+        margin: 0;
+    }
+    .list-navigation__item {
+        list-style-type: none;
+        margin: 0.5em;
+        padding: 0.5em;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-radius: 6px;
+        transition: background 0.2s ease-out;
+
+        &.active:not(.list-navigation__item-add) {
+            background: #7CC599;
+        }
+
+        &:hover .list-navigation__item-delete {
+            opacity: 1 !important;
+        }
+
+        .list-navigation__item-label {
+            width: 100%;
+            color: #fff;
+            padding-right: 0.5em;
+
+            input {
+                background: none;
+                border: 0;
+                box-shadow: none;
+                color: #fff;
+
+                &:focus {
+                    outline: none;
+                }
+                &:focus::placeholder {
+                    color: transparent;
+                }
+            }
+        }
+        .list-navigation__item-icon {
+            min-width: 26px;
+            width: 26px;
+            height: 26px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 50%;
+
+            svg {
+                width: 15px;
+                fill: #fff;
+            }
+            &.list-navigation__item-icon-add {
+                svg {
+                    fill: rgba(255,255,255,0.5);
+                    transition: all 0.2s ease-out;
+                }
+                &:hover svg {
+                    fill: #fff;
+                    cursor: pointer;
+                }
+            }
+            &.list-navigation__item-delete {
+                background: #F45656;
+                border-radius: 50%;
+                box-shadow: 0 2px 2px #9D0000;
+                transition: all 0.2s ease-out;
+                opacity: 0;
+
+                svg {
+                    width: 12px;
+                }
+                &:hover {
+                    opacity: 0.7;
+                    cursor: pointer;
+                }
+            }
+        }
+    }
+}

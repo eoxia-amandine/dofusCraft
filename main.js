@@ -56,8 +56,18 @@ ipcMain.handle("get-list", async (event, id) => {
 // Add list
 ipcMain.handle("add-list", async (event, label) => {
   const stmt = db.prepare("INSERT INTO list (label) VALUES (?)");
-  stmt.run(label);
-  return stmt.lastInsertRowid;
+  const result = stmt.run(label);
+  return result.lastInsertRowid;
+});
+
+// Delete list
+ipcMain.handle("delete-list", async (event, listId) => {
+  const deleteItemsStmt = db.prepare("DELETE FROM listItem WHERE listId = ?")
+  const deletedItems = deleteItemsStmt.run(listId); 
+
+  const stmt = db.prepare("DELETE FROM list WHERE id = ?");
+  const result = stmt.run(listId);
+  return result.changes > 0; // Retourne `true` if delete OK
 });
 
 // Get items by listId

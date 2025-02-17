@@ -1,0 +1,31 @@
+.main-navigation {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 1em;
+    z-index: 9999;
+
+    .main-navigation__inner {
+        background: $nav-background;
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        border-radius: 20px;
+        padding: 0.7em;
+        height: 70px;
+    }
+    .logo, .links {
+        width: 20%;
+    }
+    .searchbar {
+        width: 60%;
+    }
+
+    .logo {
+        img {
+            height: 100%;
+            width: auto;
+        }
+    } 
+}

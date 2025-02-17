@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld("api", {
   getLists: () => ipcRenderer.invoke('get-lists'),
   getList: (id) => ipcRenderer.invoke('get-list', id),
   addList: (label) => ipcRenderer.invoke('add-list', label),
+  deleteList: (listId) => ipcRenderer.invoke("delete-list", listId),
   getListItems: (listId) => ipcRenderer.invoke('get-list-items', listId),
   addListItem: (listId, ankamaId, type) => ipcRenderer.invoke('add-list-item', listId, ankamaId, type),
   getItemPrice: (id) => ipcRenderer.invoke('get-item-price', id),
