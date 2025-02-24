@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import debounce from 'lodash.debounce';
 import appLogo from './../assets/logo.png';
 
@@ -8,7 +8,11 @@ const Navbar = () => {
     const [searchResults, setSearchResults] = useState([]); // Résultats API
     const [loading, setLoading] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
-    
+    const location = useLocation();
+    const match = location.pathname.match(/^\/list\/(\d+)$/);
+    const listId = match ? match[1] : null;
+    const navigate = useNavigate();
+
     const fetchResults = async (query) => {
       if (!query.trim()) {
           setSearchResults([]); // Pas de recherche si champ vide
@@ -17,15 +21,29 @@ const Navbar = () => {
   
       setLoading(true);
       try {
-          const response = await window.api.fetchDofusData(`fr/items/equipment/search?query=${query}`);
-          
-          console.log(response);
-          
-          if (Array.isArray(response)) {
-            setSearchResults(response);
-          } else {
-            setSearchResults([]);
-          }
+        // const response = await window.api.fetchDofusData(`fr/items/equipment/search?query=${query}`);
+        const [equipmentRes, consumablesRes] = await Promise.all([
+            window.api.fetchDofusData(`fr/items/equipment/search?query=${query}`),
+            window.api.fetchDofusData(`fr/items/consumables/search?query=${query}`)
+        ]);
+
+
+        // const equipmentData = await equipmentRes.json();
+        // const consumablesData = await consumablesRes.json();
+
+        const equipmentItems = (Array.isArray(equipmentRes) ? equipmentRes : []).map(item => ({
+            ...item,
+            type: "equipment"
+        }));
+
+        const consumablesItems = (Array.isArray(consumablesRes) ? consumablesRes : []).map(item => ({
+            ...item,
+            type: "consumables"
+        }));
+
+        const combinedResults = [...equipmentItems, ...consumablesItems];
+
+        setSearchResults(combinedResults);
       } catch (error) {
           console.error("Erreur API :", error);
           setSearchResults([]); // Réinitialise la liste en cas d'erreur
@@ -43,6 +61,37 @@ const Navbar = () => {
 
     const handleFocus = () => setIsFocused(true);
     const handleBlur = () => setTimeout(() => setIsFocused(false), 200);
+
+    const handleResultClick = async (item) => {
+
+        let selectedListId = listId;
+
+        if (!selectedListId) {
+            const lists = await window.api.getLists();
+            if (lists.length > 0) {
+                selectedListId = lists[0].id;
+            }
+            console.log(`Aucun listId trouvé, utilisation de la première liste : ${selectedListId}`);
+    
+            // 🔹 Redirige vers la page de cette liste
+            navigate(`/list/${selectedListId}`);
+        }
+
+        const success = await window.api.addListItem({
+            listId: parseInt(selectedListId, 10),
+            ankamaId: item.ankama_id,
+            type: item.type,
+        });
+
+        if (success) {
+            console.log("Élément ajouté avec succès !");
+        } else {
+            console.error("Erreur lors de l'ajout de l'élément.");
+        }
+
+        setSearchQuery("");
+        setSearchResults([]);
+    };
     
     return (
         <nav className="main-navigation">
@@ -75,7 +124,12 @@ const Navbar = () => {
                             ) : (
                                 searchResults.length > 0 ? (
                                     searchResults.map((item) => (
-                                        <div key={item.ankama_id} className="searchbar__result">
+                                        <div
+                                          key={item.ankama_id}
+                                          type={item.type}
+                                          className="searchbar__result"
+                                          onClick={() => handleResultClick(item)}
+                                        >
                                           <img src={item.image_urls.icon} className="searchbar__result-thumb" />
                                           <div className="searchbar__result-details">
                                             <div className="searchbar__result-name">{item.name}</div>

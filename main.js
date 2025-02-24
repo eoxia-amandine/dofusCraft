@@ -77,10 +77,10 @@ ipcMain.handle("get-list-items", async (event, listId) => {
 });
 
 // Add list item
-ipcMain.handle("add-list-item", async (event, listId, ankamaId, type) => {
+ipcMain.handle("add-list-item", async (event, { listId, ankamaId, type }) => {
   const stmt = db.prepare("INSERT INTO listItem (listId, ankamaId, type) VALUES (?, ?, ?)");
-  stmt.run(listId, ankamaId, type);
-  return stmt.lastInsertRowid;
+  const result = stmt.run(listId, ankamaId, type);
+  return result.lastInsertRowid;
 });
 
 // get item price
@@ -90,7 +90,7 @@ ipcMain.handle("get-item-price", async (event, id) => {
 });
 
 // Add item price
-ipcMain.handle("add-item-price", async (event, id, value) => {
+ipcMain.handle("add-item-price", async (event, { id, value }) => {
   const stmt = db.prepare("INSERT INTO price (id, value) VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET value = excluded.value");
   stmt.run(id, value);
   return stmt.lastInsertRowid;
