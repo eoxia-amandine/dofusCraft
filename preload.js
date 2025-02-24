@@ -8,7 +8,7 @@ contextBridge.exposeInMainWorld("api", {
   getListItems: (listId) => ipcRenderer.invoke('get-list-items', listId),
   addListItem: (listId, ankamaId, type) => ipcRenderer.invoke('add-list-item', listId, ankamaId, type),
   getItemPrice: (id) => ipcRenderer.invoke('get-item-price', id),
-  addItemPrice: (id, value) => ipcRenderer.invoke('add-item-price', id, value),
+  addItemPrice: (ankamaId, value) => ipcRenderer.invoke('add-item-price', ankamaId, value),
   
   fetchDofusData: (endpoint) => ipcRenderer.invoke("fetch-dofus-data", endpoint)
 });

@@ -84,16 +84,16 @@ ipcMain.handle("add-list-item", async (event, { listId, ankamaId, type }) => {
 });
 
 // get item price
-ipcMain.handle("get-item-price", async (event, id) => {
-  const stmt = db.prepare("SELECT value FROM price WHERE id = ?");
+ipcMain.handle("get-item-price", async (event, ankamaId) => {
+  const stmt = db.prepare("SELECT value FROM price WHERE ankamaId = ?");
   return stmt.get(id);
 });
 
 // Add item price
-ipcMain.handle("add-item-price", async (event, { id, value }) => {
-  const stmt = db.prepare("INSERT INTO price (id, value) VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET value = excluded.value");
-  stmt.run(id, value);
-  return stmt.lastInsertRowid;
+ipcMain.handle("add-item-price", async (event, { ankamaId, value }) => {
+  const stmt = db.prepare(`INSERT INTO price (ankamaId, value, date) VALUES (?, ?, datetime('now', 'localtime'))`);
+  stmt.run(ankamaId, value);
+  return { success: true };
 });
 
 // Get API Dofus datas

@@ -28,9 +28,12 @@ db.prepare(`
 db.prepare(`
   CREATE TABLE IF NOT EXISTS price (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ankamaId INTEGER NOT NULL,
+    date TEXT DEFAULT (datetime('now', 'localtime')),
     value INTEGER NOT NULL
   )
 `).run();
+
 
 // Exporter l'objet db pour y accéder depuis Electron
 module.exports = db;
