@@ -242,6 +242,7 @@ const List = ({ refreshList, refreshTrigger }) => {
                                 <div className="item__header-content">
                                     <h2 className="item__header-title">{item.name}</h2>
                                     <ul className="item__header-attributes">
+                                        <li>#{item.ankama_id}</li>
                                         <li>Level {item.level}</li>
                                     </ul>
                                 </div>
