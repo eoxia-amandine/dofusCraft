@@ -85,8 +85,9 @@ ipcMain.handle("add-list-item", async (event, { listId, ankamaId, type }) => {
 
 // get item price
 ipcMain.handle("get-item-price", async (event, ankamaId) => {
-  const stmt = db.prepare("SELECT value FROM price WHERE ankamaId = ?");
-  return stmt.get(id);
+  const stmt = db.prepare("SELECT value FROM price WHERE ankamaId = ? ORDER BY date DESC LIMIT 1");
+  const lastPrice = stmt.get(ankamaId);
+  return lastPrice?.value ?? 0;
 });
 
 // Add item price
