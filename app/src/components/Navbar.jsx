@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import debounce from 'lodash.debounce';
 import appLogo from './../assets/logo.png';
 
-const Navbar = () => {
+const Navbar = ({refreshList}) => {
     const [searchQuery, setSearchQuery] = useState(""); // Texte entré par l'utilisateur
     const [searchResults, setSearchResults] = useState([]); // Résultats API
     const [loading, setLoading] = useState(false);
@@ -85,6 +85,7 @@ const Navbar = () => {
 
         if (success) {
             console.log("Élément ajouté avec succès !");
+            refreshList();
         } else {
             console.error("Erreur lors de l'ajout de l'élément.");
         }

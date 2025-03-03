@@ -11,14 +11,15 @@ import { useParams } from 'react-router-dom';
 // - Supprimer un élément
 // - Gérer a ligne de prix non sauvegardée
 
-const List = () => {
+const List = ({ refreshList, refreshTrigger }) => {
     const { id } = useParams();
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [quantities, setQuantities] = useState({});
     const [totalPrices, setTotalPrices] = useState({});
-    const [globalPrice, setGlobalPrice] = useState(0);
+    const [globalPrices, setGlobalPrices] = useState({});
     const priceInputsRef = useRef({});
+    const [unsavedChanges, setUnsavedChanges] = useState({});
 
     // 🔹 Fonction pour récupérer les détails d'une recette
     const fetchRecipeDetails = async (recipeArray) => {
@@ -93,7 +94,7 @@ const List = () => {
     useEffect(() => {
         if (!id) return;
         fetchItemsWithPrices();
-    }, [id]);
+    }, [id, refreshTrigger]);
 
     // Calcul des prix en direct
     useEffect(() => {
@@ -101,50 +102,75 @@ const List = () => {
       items.forEach((item) => {
           if (item.recipeDetails) {
               item.recipeDetails.forEach((ingredient) => {
-                  const quantity = quantities[ingredient.item_ankama_id] ?? ingredient.quantity;
+                  const quantity = quantities[`${item.id}_${ingredient.item_ankama_id}`] ?? ingredient.quantity;
                   const price = ingredient.unitPrice ?? 0;
-                  newTotalPrices[ingredient.item_ankama_id] = (price * quantity).toFixed(0);
+                  newTotalPrices[`${item.id}_${ingredient.item_ankama_id}`] = (price * quantity).toFixed(0);
               });
           }
       });
       setTotalPrices(newTotalPrices);
     }, [items, quantities]);
+    
+    // Reset les unsaved au chargement d'une liste
+    useEffect(() => {
+        setUnsavedChanges({});
+    }, [id]);  
 
     // Met à jour le prix global de l'item
     useEffect(() => {
-      let total = 0;
-      Object.values(totalPrices).forEach((price) => {
-          total += parseInt(price, 10) || 0;
-      });
-      setGlobalPrice(total);
+        const newGlobalPrices = {};
+        items.forEach((item) => {
+            let total = 0;
+            if (item.recipeDetails) {
+                item.recipeDetails.forEach((ingredient) => {
+                    const ingredientTotal = totalPrices[`${item.id}_${ingredient.item_ankama_id}`] ?? 0;
+                    total += parseInt(ingredientTotal, 10);
+                });
+            }
+            newGlobalPrices[item.id] = total.toFixed(0);
+        });
+        setGlobalPrices(newGlobalPrices);
     }, [totalPrices]);
 
     // 🔹 Fonction pour enregistrer un prix en base lors de l'appui sur "Entrée"
-    const handlePriceKeyPress = async (event, ingredient, index) => {
+    const handlePriceKeyPress = async (event, ingredient, index, itemId) => {
       if (event.key === "Enter") {
-          const newPrice = parseFloat(event.target.value);
-  
-          if (!isNaN(newPrice) && newPrice >= 0) {
-              const result = await window.api.addItemPrice({
-                  ankamaId: ingredient.ankama_id,
-                  value: newPrice
-              });
-  
-              if (result.success) {
-                  console.log(`✅ Prix enregistré : ${newPrice} K`);
-                  const nextIndex = index + 1;
-                  if (priceInputsRef.current[nextIndex]) {
-                      priceInputsRef.current[nextIndex].focus();
-                      priceInputsRef.current[nextIndex].select();
-                  }
-              } else {
-                  console.error("❌ Erreur lors de l'enregistrement du prix :", result.error);
-              }
-          }
+        const inputRef = priceInputsRef.current[itemId]?.[index];
+        if (inputRef) {
+            await savePrice(inputRef, ingredient, index, itemId);
+        }
       }
     };
 
-    const handleQuantityChange = (event, ingredientId, maxQuantity) => {
+    const savePrice = async (price, ingredient, index, itemId) => {
+        const newPrice = parseFloat(price?.value) || 0;
+    
+        if (!isNaN(newPrice) && newPrice >= 0) {
+            const result = await window.api.addItemPrice({
+                ankamaId: ingredient.ankama_id,
+                value: newPrice
+            });
+    
+            if (result.success) {
+                console.log(`✅ Prix enregistré : ${newPrice} K`);
+    
+                const nextIndex = index + 1;
+                if (priceInputsRef.current[itemId] && priceInputsRef.current[itemId][nextIndex]) {
+                  priceInputsRef.current[itemId][nextIndex].focus();
+                  priceInputsRef.current[itemId][nextIndex].select();
+                }
+                setUnsavedChanges((prev) => ({
+                    ...prev,
+                    [`${itemId}_${ingredient.item_ankama_id}`]: false
+                }));
+            } else {
+                console.error("❌ Erreur lors de la sauvegarde :", result.error);
+            }
+        }
+    };     
+
+    // Gère la modification du champ quantité
+    const handleQuantityChange = (event, itemId, ingredientId, maxQuantity) => {
       let newQuantity = parseInt(event.target.value, 10) || 0;
   
       if (newQuantity > maxQuantity) {
@@ -153,22 +179,49 @@ const List = () => {
           newQuantity = 0;
       }
   
-      setQuantities((prev) => ({ ...prev, [ingredientId]: newQuantity }));
+      setQuantities((prev) => ({ ...prev, [`${itemId}_${ingredientId}`]: newQuantity }));
     };
     
-    const handlePriceChange = (event, ingredientId) => {
-      const newPrice = event.target.value === "" ? "" : parseFloat(event.target.value);
-      setItems((prevItems) =>
-          prevItems.map((item) => ({
-              ...item,
-              recipeDetails: item.recipeDetails.map((ingredient) =>
-                  ingredient.item_ankama_id === ingredientId
-                      ? { ...ingredient, unitPrice: newPrice }
-                      : ingredient
-              ),
-          }))
-      );
+    // Gère la modification du champ prix
+    const handlePriceChange = (event, itemId, ingredientId) => {
+      const newPrice = parseFloat(event.target.value) || 0;
+
+      setUnsavedChanges((prev) => ({
+        ...prev,
+        [`${itemId}_${ingredientId}`]: true
+      }));
+
+      setItems((prevItems) => {
+        const updatedItems = prevItems.map((item) => {
+            if (item.id === itemId) {
+                return {
+                    ...item,
+                    recipeDetails: item.recipeDetails.map((ingredient) =>
+                        ingredient.item_ankama_id === ingredientId
+                            ? { ...ingredient, unitPrice: newPrice }
+                            : ingredient
+                    )
+                };
+            }
+            return item;
+        });
+
+        return updatedItems;
+      });
     };
+
+    // Supprime l'item de la liste
+    const handleDeleteItem = async (itemId, itemLabel) => {
+        const confirmDelete = window.confirm(`Êtes-vous sûr de vouloir supprimer l'item "${itemLabel}" de la liste ?`);
+        if (!confirmDelete) return;
+    
+        const result = await window.api.deleteListItem(itemId);
+    
+        if (result) {
+            setItems((prevItems) => prevItems.filter((item) => item.id !== itemId));
+        }
+    };
+    
 
     return (
         <div>
@@ -178,7 +231,7 @@ const List = () => {
                 <div className="list-items">
                     {items.map((item) => (
                         <div key={item.id} className="item">
-                            <span className="item__delete">
+                            <span className="item__delete" onClick={() => handleDeleteItem(item.id, item.name)}>
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
                                     <path d="M135.2 17.7L128 32 32 32C14.3 32 0 46.3 0 64S14.3 96 32 96l384 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-96 0-7.2-14.3C307.4 6.8 296.3 0 284.2 0L163.8 0c-12.1 0-23.2 6.8-28.6 17.7zM416 128L32 128 53.2 467c1.6 25.3 22.6 45 47.9 45l245.8 0c25.3 0 46.3-19.7 47.9-45L416 128z"/>
                                 </svg>
@@ -197,7 +250,7 @@ const List = () => {
                             {item.recipeDetails && item.recipeDetails.length > 0 && (
                                 <div className="item__list-recipe">
                                     {item.recipeDetails.map((ingredient, index) => (
-                                        <div key={ingredient.item_ankama_id} className="item__recipe">
+                                        <div key={ingredient.item_ankama_id} className={`item__recipe ${unsavedChanges[`${item.id}_${ingredient.item_ankama_id}`] ? "unsaved" : ""}`}>
                                             <div className="item__recipe-content">
                                                 <img src={ingredient.image_urls.icon} className="item__recipe-thumb" alt="icon" />
                                                 <div className="item__recipe-name" title={ingredient.name}>{ingredient.name}</div>
@@ -206,8 +259,8 @@ const List = () => {
                                                         type="number"
                                                         min="0"
                                                         max={ingredient.quantity}
-                                                        value={quantities[ingredient.item_ankama_id] ?? ingredient.quantity}
-                                                        onChange={(e) => handleQuantityChange(e, ingredient.item_ankama_id)}
+                                                        value={quantities[`${item.id}_${ingredient.item_ankama_id}`] ?? ingredient.quantity}
+                                                        onChange={(e) => handleQuantityChange(e, item.id, ingredient.item_ankama_id, ingredient.quantity)}
                                                     /> / {ingredient.quantity})
                                                 </div>
                                             </div>
@@ -215,15 +268,28 @@ const List = () => {
                                                 <input
                                                     type="number"
                                                     min="0"
-                                                    ref={(el) => (priceInputsRef.current[index] = el)} 
+                                                    ref={(el) => {
+                                                        if (!priceInputsRef.current[item.id]) {
+                                                            priceInputsRef.current[item.id] = {};
+                                                        }
+                                                        priceInputsRef.current[item.id][index] = el;
+                                                    }}
                                                     value={String(ingredient.unitPrice ?? "")}
-                                                    onChange={(e) => handlePriceChange(e, ingredient.item_ankama_id)}
-                                                    onKeyDown={(e) => handlePriceKeyPress(e, ingredient, index)}
+                                                    onChange={(e) => handlePriceChange(e, item.id, ingredient.item_ankama_id)}
+                                                    onKeyDown={(e) => handlePriceKeyPress(e, ingredient, index, item.id)}
                                                 />
                                                 / <span className="item__recipe-price-total">
-                                                  {totalPrices[ingredient.item_ankama_id] || 0} K
+                                                  {totalPrices[`${item.id}_${ingredient.item_ankama_id}`] || 0} K
                                                 </span>
                                             </div>
+                                            <button className="item__recipe-price-save" onClick={() => {
+                                                const inputRef = priceInputsRef.current[item.id]?.[index];
+                                                if (inputRef) {
+                                                    savePrice(inputRef, ingredient, index, item.id);
+                                                }
+                                            }}>
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M64 32C28.7 32 0 60.7 0 96L0 416c0 35.3 28.7 64 64 64l320 0c35.3 0 64-28.7 64-64l0-242.7c0-17-6.7-33.3-18.7-45.3L352 50.7C340 38.7 323.7 32 306.7 32L64 32zm0 96c0-17.7 14.3-32 32-32l192 0c17.7 0 32 14.3 32 32l0 64c0 17.7-14.3 32-32 32L96 224c-17.7 0-32-14.3-32-32l0-64zM224 288a64 64 0 1 1 0 128 64 64 0 1 1 0-128z"/></svg>
+                                            </button>
                                         </div>
                                     ))}
                                 </div>
@@ -231,7 +297,7 @@ const List = () => {
 
                             <div className="item__footer">
                                 <span>Prix total du craft</span>
-                                <span className="item__total-price">{globalPrice} k</span>
+                                <span className="item__total-price">{globalPrices[item.id] || 0} K</span>
                             </div>
                         </div>
                     ))}

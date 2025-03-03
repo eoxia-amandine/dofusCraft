@@ -83,6 +83,13 @@ ipcMain.handle("add-list-item", async (event, { listId, ankamaId, type }) => {
   return result.lastInsertRowid;
 });
 
+// delete list item
+ipcMain.handle("delete-list-item", async (event, itemId) => {
+  const stmt = db.prepare("DELETE FROM listItem WHERE id = ?")
+  const result = stmt.run(itemId);
+  return result.changes > 0; // Retourne `true` if delete OK
+});
+
 // get item price
 ipcMain.handle("get-item-price", async (event, ankamaId) => {
   const stmt = db.prepare("SELECT value FROM price WHERE ankamaId = ? ORDER BY date DESC LIMIT 1");
