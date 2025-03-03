@@ -21,6 +21,19 @@ const List = ({ refreshList, refreshTrigger }) => {
     const priceInputsRef = useRef({});
     const [unsavedChanges, setUnsavedChanges] = useState({});
 
+    // Formate le prix
+    const formatPrice = (price) => {
+        return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+    };
+
+    // Modifie la taille des champs input
+    const adjustInputWidth = (input) => {
+        if (input) {
+            const textLength = input.value.length || 2;
+            input.style.width = `${textLength * 12}px`;
+        }
+    };    
+
     // 🔹 Fonction pour récupérer les détails d'une recette
     const fetchRecipeDetails = async (recipeArray) => {
         if (!Array.isArray(recipeArray) || recipeArray.length === 0) return [];
@@ -131,6 +144,14 @@ const List = ({ refreshList, refreshTrigger }) => {
         });
         setGlobalPrices(newGlobalPrices);
     }, [totalPrices]);
+
+    // Auto resize des champs au chargement de la page
+    useEffect(() => {
+        setTimeout(() => {
+            document.querySelectorAll(".auto-resize").forEach((input) => adjustInputWidth(input));
+        }, 100);
+    }, [items]);
+    
 
     // 🔹 Fonction pour enregistrer un prix en base lors de l'appui sur "Entrée"
     const handlePriceKeyPress = async (event, ingredient, index, itemId) => {
@@ -259,9 +280,12 @@ const List = ({ refreshList, refreshTrigger }) => {
                                                     (<input
                                                         type="number"
                                                         min="0"
+                                                        className="auto-resize"
                                                         max={ingredient.quantity}
                                                         value={quantities[`${item.id}_${ingredient.item_ankama_id}`] ?? ingredient.quantity}
                                                         onChange={(e) => handleQuantityChange(e, item.id, ingredient.item_ankama_id, ingredient.quantity)}
+                                                        onInput={(e) => adjustInputWidth(e.target)}
+                                                        style={{ minWidth: "40px" }}
                                                     /> / {ingredient.quantity})
                                                 </div>
                                             </div>
@@ -275,12 +299,16 @@ const List = ({ refreshList, refreshTrigger }) => {
                                                         }
                                                         priceInputsRef.current[item.id][index] = el;
                                                     }}
+                                                    className="auto-resize"
                                                     value={String(ingredient.unitPrice ?? "")}
                                                     onChange={(e) => handlePriceChange(e, item.id, ingredient.item_ankama_id)}
                                                     onKeyDown={(e) => handlePriceKeyPress(e, ingredient, index, item.id)}
+                                                    onInput={(e) => adjustInputWidth(e.target)}
+                                                    onFocus={(e) => e.target.select()}
+                                                    style={{ minWidth: "40px" }}
                                                 />
                                                 / <span className="item__recipe-price-total">
-                                                  {totalPrices[`${item.id}_${ingredient.item_ankama_id}`] || 0} K
+                                                  {formatPrice(totalPrices[`${item.id}_${ingredient.item_ankama_id}`] || 0)} K
                                                 </span>
                                             </div>
                                             <button className="item__recipe-price-save" onClick={() => {
@@ -298,7 +326,7 @@ const List = ({ refreshList, refreshTrigger }) => {
 
                             <div className="item__footer">
                                 <span>Prix total du craft</span>
-                                <span className="item__total-price">{globalPrices[item.id] || 0} K</span>
+                                <span className="item__total-price">{formatPrice(globalPrices[item.id] || 0)} K</span>
                             </div>
                         </div>
                     ))}
